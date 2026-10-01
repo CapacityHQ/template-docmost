@@ -159,7 +159,22 @@ async function bootstrap() {
 
   app.enableCors();
   app.useGlobalInterceptors(new TransformHttpResponseInterceptor(reflector));
-  app.enableShutdownHooks();
+  // Capacity: as PID 1 of the deployed container, the process receives the
+  // rolling update's SIGTERM itself. Nest's enableShutdownHooks() runs the
+  // shutdown hooks and then re-raises the signal, which PID 1 ignores, so the
+  // process would live on until Docker's SIGKILL 30 s later and the request in
+  // flight at that instant would fail. app.close() runs the same hooks and waits
+  // for the open requests; the process then exits, and within Docker's grace
+  // period whatever is still open.
+  for (const signal of ['SIGTERM', 'SIGINT'] as const) {
+    process.once(signal, () => {
+      setTimeout(() => process.exit(0), 20_000).unref();
+      app
+        .close()
+        .catch(() => undefined)
+        .finally(() => process.exit(0));
+    });
+  }
 
   const logger = new Logger('NestApplication');
 

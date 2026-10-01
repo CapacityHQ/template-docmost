@@ -59,4 +59,9 @@ VOLUME ["/app/data/storage"]
 
 EXPOSE 3000
 
-CMD ["pnpm", "start"]
+# Capacity: run the server itself as PID 1, from the directory `pnpm start` would run
+# it in, so the SIGTERM of a rolling update reaches it and it drains before it exits.
+# NODE_ENV=production is what cross-env set in the start:prod script.
+ENV NODE_ENV=production
+WORKDIR /app/apps/server
+CMD ["node", "dist/main"]

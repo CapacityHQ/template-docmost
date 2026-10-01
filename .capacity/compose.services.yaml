@@ -1,0 +1,39 @@
+# Capacity Desktop starts this file with `docker compose up -d --wait` before
+# installing dependencies. Upstream's docker-compose.yml is the model (the same
+# Redis flags: BullMQ needs noeviction), with the user, password, database and
+# host ports .env.example already points at, so the example needs no edit.
+# Postgres 16 is what the own-cloud recipe provisions, so local and deployed
+# migrations run on the same major. The health check asks over TCP: the server
+# the image runs while it initializes an empty volume listens on its socket
+# only and must not count as ready.
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: docmost
+    ports:
+      - "5432:5432"
+    volumes:
+      - docmost_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d docmost"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  redis:
+    image: redis:8
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - docmost_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+volumes:
+  docmost_postgres:
+  docmost_redis:

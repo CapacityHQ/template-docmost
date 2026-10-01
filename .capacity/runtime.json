@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "apps": [
+    { "id": "client", "name": "Docmost", "primary": true, "cwd": ".", "command": "NX_DAEMON=false pnpm client:dev" },
+    { "id": "server", "name": "Server", "primary": false, "cwd": ".", "command": "NX_DAEMON=false pnpm server:dev" }
+  ],
+  "services": [
+    { "id": "db", "composeFile": ".capacity/compose.services.yaml" }
+  ],
+  "setup": [
+    { "id": "secrets", "command": "node .capacity/ensure-secrets.mjs" },
+    { "id": "db-migrate", "command": "pnpm --filter ./apps/server run migration:latest" }
+  ]
+}
